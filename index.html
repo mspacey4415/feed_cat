@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cat & Kid Game</title>
+    <!-- Font for general text -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for potential icons, though emojis are used for characters -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Basic styling for the body */
+        body {
+            margin: 0;
+            overflow: hidden; /* Hide scrollbars */
+            font-family: 'Inter', sans-serif; /* Use Inter font */
+            background-color: #87CEEB; /* Sky blue background */
+            display: flex;
+            justify-content: center; /* Center content horizontally */
+            align-items: center; /* Center content vertically */
+            min-height: 100vh; /* Full viewport height */
+        }
+
+        /* Styling for the main game container */
+        .game-container {
+            position: relative; /* For absolute positioning of children */
+            width: 90vw; /* Responsive width */
+            max-width: 800px; /* Maximum width for larger screens */
+            height: 60vh; /* Responsive height */
+            max-height: 500px; /* Maximum height */
+            background-color: #ADD8E6; /* Lighter blue for game area */
+            border-radius: 20px; /* Rounded corners for the game area */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3); /* Soft shadow */
+            overflow: hidden; /* Hide anything outside the container */
+        }
+
+        /* Styling for the ground element */
+        .ground {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 15%; /* Height of the ground */
+            background-color: #90EE90; /* Light green ground */
+            border-radius: 0 0 20px 20px; /* Rounded bottom corners */
+        }
+
+        /* Styling for the cat and kid characters */
+        .cat, .kid {
+            position: absolute;
+            bottom: 15%; /* Positioned above the ground */
+            font-size: 60px; /* Large emoji size */
+            transition: transform 0.1s ease-out; /* Smooth movement transition */
+            z-index: 10; /* Ensure they are above other elements */
+            min-width: 60px; /* Ensure kid always has a measurable width */
+        }
+
+        .cat {
+            left: 5%; /* Initial position for the cat */
+        }
+
+        .kid {
+            right: 5%; /* Initial position for the kid */
+        }
+
+        /* Visual change for the cat when wind is active (open mouth) */
+        .cat.open-mouth {
+            transform: scale(1.1); /* Simple scaling animation */
+            filter: brightness(0.8); /* Slightly dim the cat */
+        }
+
+        /* Styling for gauge containers */
+        .gauge-container {
+            position: absolute;
+            top: 20px;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
+            border-radius: 15px; /* Rounded corners */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Soft shadow */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 120px;
+        }
+
+        /* Styling for gauge labels */
+        .gauge-label {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        /* Styling for the gauge bar background */
+        .gauge-bar {
+            width: 100px;
+            height: 20px;
+            background-color: #ddd;
+            border-radius: 10px;
+            overflow: hidden; /* Hide overflow of the fill bar */
+            border: 1px solid #aaa;
+        }
+
+        /* Styling for the gauge fill progress */
+        .gauge-fill {
+            height: 100%;
+            width: 0%; /* Starts empty */
+            background-color: #4CAF50; /* Green for wind gauge */
+            border-radius: 10px;
+            transition: width 0.1s linear; /* Smooth fill animation */
+        }
+
+        /* Positioning for the wind gauge */
+        #windGauge {
+            left: 20px;
+        }
+
+        /* Positioning for the HP gauge */
+        #hpGauge {
+            right: 20px;
+        }
+
+        /* Specific color for HP gauge fill */
+        #hpGauge .gauge-fill {
+            background-color: #FF6347; /* Red for HP gauge */
+        }
+
+        /* Styling for the controller buttons container */
+        .controller {
+            position: absolute;
+            bottom: 20px; /* Positioned below the ground */
+            right: 20px;
+            display: flex;
+            gap: 10px; /* Space between buttons */
+            z-index: 20; /* Ensure controller is on top */
+        }
+
+        /* Styling for controller buttons */
+        .controller button {
+            background-color: #6A5ACD; /* Slate blue */
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            font-size: 20px;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2); /* Button shadow */
+            transition: background-color 0.3s ease, transform 0.1s ease; /* Smooth transitions */
+        }
+
+        /* Hover effect for buttons */
+        .controller button:hover {
+            background-color: #483D8B; /* Darker slate blue */
+            transform: translateY(-2px); /* Slight lift effect */
+        }
+
+        /* Active (click) effect for buttons */
+        .controller button:active {
+            transform: translateY(1px); /* Push down effect */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Styling for the game message box (win/lose) */
+        .message-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%); /* Center the box */
+            background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent dark background */
+            color: white;
+            padding: 20px 40px;
+            border-radius: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            text-align: center;
+            z-index: 100; /* Ensure it's on top of everything */
+            display: none; /* Hidden by default */
+        }
+
+        /* Styling for the wind effect overlay */
+        .wind-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 100%); /* Gradient for wind */
+            animation: wind-gust 0.5s infinite alternate; /* Wind animation */
+            display: none; /* Hidden by default */
+            pointer-events: none; /* Allows clicks to pass through */
+            z-index: 5; /* Below characters but above background */
+        }
+
+        /* Keyframe animation for the wind gust effect */
+        @keyframes wind-gust {
+            from { opacity: 0.5; transform: translateX(0); }
+            to { opacity: 0.8; transform: translateX(-10px); }
+        }
+
+        /* Styling for the "Ouch!" message and "Game Over" message */
+        .dialog-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 0, 0, 0.9); /* Default red background */
+            color: white;
+            padding: 25px 45px; /* Increased padding */
+            border-radius: 20px; /* More rounded */
+            font-size: 36px; /* Larger font */
+            font-weight: bold;
+            text-align: center;
+            z-index: 101; /* Higher than message box */
+            display: none; /* Hidden by default */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4); /* More prominent shadow */
+            flex-direction: column; /* Arrange content vertically */
+            align-items: center; /* Center content horizontally */
+        }
+
+        .dialog-box p {
+            margin-bottom: 20px; /* Space between text and button */
+        }
+
+        .dialog-box button {
+            background-color: #4CAF50; /* Green OK button */
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+
+        .dialog-box button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .dialog-box button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Specific style for Game Over dialog */
+        .dialog-box.game-over {
+            background-color: rgba(139, 0, 0, 0.9); /* Darker red for game over */
+        }
+
+        /* Reset Button Styling */
+        #resetButton {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%); /* Center horizontally */
+            background-color: #FFD700; /* Gold color */
+            color: #333;
+            border: none;
+            padding: 12px 25px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            z-index: 30; /* Ensure it's above other elements */
+        }
+
+        #resetButton:hover {
+            background-color: #FFC107; /* Darker gold */
+            transform: translateX(-50%) translateY(-2px);
+        }
+
+        #resetButton:active {
+            transform: translateX(-50%) translateY(1px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+
+        /* Responsive adjustments for smaller screens (e.g., mobile) */
+        @media (max-width: 600px) {
+            .game-container {
+                width: 95vw;
+                height: 70vh;
+            }
+            .cat, .kid {
+                font-size: 45px; /* Smaller emoji size */
+                bottom: 12%; /* Adjust vertical position */
+            }
+            .gauge-container {
+                padding: 8px;
+                min-width: 100px;
+            }
+            .gauge-bar {
+                width: 80px;
+                height: 18px;
+            }
+            .controller {
+                bottom: 10px;
+                right: 10px;
+                gap: 5px;
+            }
+            .controller button {
+                padding: 10px 18px;
+                font-size: 16px;
+                border-radius: 10px;
+            }
+            .message-box {
+                font-size: 22px;
+                padding: 15px 30px;
+            }
+            .dialog-box { /* Applies to ouch and game over */
+                font-size: 26px;
+                padding: 15px 30px; /* Adjusted padding for smaller screens */
+            }
+            .dialog-box p {
+                margin-bottom: 15px; /* Adjusted margin */
+            }
+            .dialog-box button {
+                padding: 10px 25px;
+                font-size: 20px;
+            }
+            #resetButton {
+                padding: 10px 20px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="ground"></div>
+        <div class="cat" id="cat">🐱</div>
+        <div class="kid" id="kid">👦</div>
+
+        <!-- Wind Strength Gauge -->
+        <div class="gauge-container" id="windGauge">
+            <div class="gauge-label">Wind Strength</div>
+            <div class="gauge-bar"><div class="gauge-fill" id="windGaugeFill"></div></div>
+        </div>
+
+        <!-- Kid's HP Gauge -->
+        <div class="gauge-container" id="hpGauge">
+            <div class="gauge-label">Kid's HP</div>
+            <div class="gauge-bar"><div class="gauge-fill" id="hpGaugeFill"></div></div>
+        </div>
+
+        <!-- Controller Buttons -->
+        <div class="controller">
+            <button id="moveLeft">◀️ Left</button>
+            <button id="moveRight">▶️ Right</button>
+        </div>
+
+        <!-- Reset Button -->
+        <button id="resetButton">🔄 Reset Game</button>
+
+        <!-- Message Box for Win/Lose -->
+        <div class="message-box" id="messageBox"></div>
+        
+        <!-- "Ouch!" / "Game Over" Dialog Box -->
+        <div class="dialog-box" id="gameDialog">
+            <p id="dialogMessage"></p>
+            <button id="dialogOkButton">OK</button>
+        </div>
+
+        <!-- Wind Effect Visual -->
+        <div class="wind-effect" id="windEffect"></div>
+    </div>
+
+    <script>
+        // Get references to DOM elements
+        const cat = document.getElementById('cat');
+        const kid = document.getElementById('kid');
+        const windGaugeFill = document.getElementById('windGaugeFill');
+        const hpGaugeFill = document.getElementById('hpGaugeFill');
+        const moveLeftBtn = document.getElementById('moveLeft');
+        const moveRightBtn = document.getElementById('moveRight');
+        const messageBox = document.getElementById('messageBox');
+        const windEffect = document.getElementById('windEffect');
+        const gameContainer = document.querySelector('.game-container');
+        const gameDialog = document.getElementById('gameDialog'); // Unified dialog box
+        const dialogMessage = document.getElementById('dialogMessage'); // Message inside dialog
+        const dialogOkButton = document.getElementById('dialogOkButton'); // OK button inside dialog
+        const resetButton = document.getElementById('resetButton'); // New reset button
+
+        // Game state variables
+        let kidHP = 5; // Current HP of the kid
+        let windGaugeProgress = 0; // Progress of the wind gauge (0 to 100)
+        let isWindActive = false; // True when wind is currently blowing
+        let gameWon = false; // True if the game is won
+        let gameLost = false; // True if the game is lost
+        let isGamePaused = false; // New flag to pause game logic
+        let canWin = true; // New flag: True if the win condition can be met
+
+        // Game configuration constants
+        const maxHP = 5; // Maximum HP for the kid
+        const windFillTime = 4000; // Time in milliseconds for the wind gauge to fill (4 seconds) - CHANGED
+        const windDuration = 4000; // Time in milliseconds the wind lasts once active (4 seconds)
+        const kidMoveSpeed = 20; // Pixels the kid moves per button click
+        const windPullSpeed = 2; // Pixels the kid is pulled left per frame during wind
+
+        // Timer IDs for clearing intervals/timeouts
+        let windGaugeInterval;
+        let windActiveTimeout;
+        let gameLoopInterval; // Main game loop for continuous updates
+        let winCooldownTimeout; // New: Timeout for win cooldown
+
+        // Character positions (relative to game container)
+        let kidX; // Kid's X position
+        let catX; // Cat's X position
+        const groundHeightPercentage = 0.15; // Corresponds to CSS ground height
+
+        /**
+         * Resets kid's position to the far right of the game container.
+         * Uses requestAnimationFrame to ensure layout is ready before reading dimensions.
+         */
+        function resetKidPosition() {
+            // Request animation frame to ensure layout is complete before reading dimensions
+            window.requestAnimationFrame(() => {
+                const containerWidth = gameContainer.clientWidth;
+                const kidWidth = kid.offsetWidth; // Get current rendered width of kid
+
+                // Check if dimensions are valid before calculating
+                if (containerWidth > 0 && kidWidth > 0) {
+                    // Calculate position: 5% from right edge, minus kid's own width
+                    kidX = containerWidth - (containerWidth * 0.05) - kidWidth;
+                    kid.style.right = 'auto'; // Explicitly set right to auto to rely on left
+                    kid.style.left = `${kidX}px`;
+                } else {
+                    // If dimensions are zero, try again after a short delay
+                    // This can happen if the iframe/environment is still initializing
+                    setTimeout(resetKidPosition, 100);
+                }
+            });
+        }
+
+        /**
+         * Initializes or resets the game state. This function now serves as the central reset point.
+         */
+        function initializeGame() {
+            // Calculate initial positions dynamically based on container size
+            const containerWidth = gameContainer.clientWidth;
+            const containerHeight = gameContainer.clientHeight;
+
+            // Reset kid's position
+            resetKidPosition(); // This now uses rAF internally
+            kid.style.bottom = `${containerHeight * groundHeightPercentage}px`;
+
+            // Cat's initial position: 5% from left edge
+            catX = containerWidth * 0.05;
+            cat.style.left = `${catX}px`;
+            cat.style.bottom = `${containerHeight * groundHeightPercentage}px`;
+
+            // Reset game state variables
+            kidHP = maxHP;
+            windGaugeProgress = 0;
+            isWindActive = false;
+            gameWon = false;
+            gameLost = false;
+            isGamePaused = false; // Ensure game starts unpaused
+
+            // Hide all dialogs/messages and wind effect, reset cat appearance
+            messageBox.style.display = 'none';
+            gameDialog.style.display = 'none'; // Hide the unified dialog
+            gameDialog.classList.remove('game-over'); // Remove game-over specific styling
+            windEffect.style.display = 'none';
+            cat.classList.remove('open-mouth');
+            cat.textContent = '🐱'; // Reset cat emoji
+
+            // Update gauges to their initial states
+            updateHPGauge();
+            updateWindGauge();
+
+            // Clear any existing timers to prevent duplicates
+            clearInterval(windGaugeInterval);
+            clearTimeout(windActiveTimeout);
+            clearInterval(gameLoopInterval);
+            clearTimeout(winCooldownTimeout); // Clear win cooldown timeout
+
+            // Set canWin to false initially and enable after a cooldown
+            // This prevents immediate win on game start/reset if there's any lingering collision
+            canWin = false;
+            winCooldownTimeout = setTimeout(() => {
+                canWin = true;
+            }, 500); // Using a fixed 500ms cooldown for win condition after reset
+
+            // Start new game timers
+            startWindGaugeTimer();
+            startGameLoop(); // Start the main game loop for continuous checks
+        }
+
+        /**
+         * Updates the Kid's HP gauge visually.
+         */
+        function updateHPGauge() {
+            const hpPercentage = (kidHP / maxHP) * 100;
+            hpGaugeFill.style.width = `${hpPercentage}%`;
+            // Change HP gauge color based on remaining HP
+            if (kidHP <= 0) {
+                hpGaugeFill.style.backgroundColor = '#8B0000'; // Dark red when HP is zero
+            } else if (kidHP <= 2) {
+                hpGaugeFill.style.backgroundColor = '#FF4500'; // Orange-red when low
+            } else {
+                hpGaugeFill.style.backgroundColor = '#FF6347'; // Original red
+            }
+        }
+
+        /**
+         * Updates the Wind Strength gauge visually.
+         */
+        function updateWindGauge() {
+            windGaugeFill.style.width = `${windGaugeProgress}%`;
+        }
+
+        /**
+         * Starts the timer that fills the wind gauge over time.
+         */
+        function startWindGaugeTimer() {
+            windGaugeProgress = 0; // Reset progress
+            updateWindGauge(); // Update visual
+            clearInterval(windGaugeInterval); // Ensure no duplicate intervals are running
+            windGaugeInterval = setInterval(() => {
+                // Stop if game is won or lost or paused
+                if (gameWon || gameLost || isGamePaused) {
+                    clearInterval(windGaugeInterval);
+                    return;
+                }
+                // Increment progress, filling 100% in `windFillTime` seconds
+                const incrementPerSecond = 100 / (windFillTime / 1000); 
+                windGaugeProgress += incrementPerSecond; 
+                
+                if (windGaugeProgress >= 100) {
+                    windGaugeProgress = 100; // Cap at 100%
+                    clearInterval(windGaugeInterval); // Stop filling
+                    activateWind(); // Activate wind effect
+                }
+                updateWindGauge(); // Update visual
+            }, 1000); // Update every 1 second
+        }
+
+        /**
+         * Activates the strong wind effect.
+         */
+        function activateWind() {
+            if (gameWon || gameLost || isGamePaused) return; // Do nothing if game is over or paused
+
+            isWindActive = true; // Set wind active state
+            windEffect.style.display = 'block'; // Show wind animation
+            cat.classList.add('open-mouth'); // Add class for open mouth cat
+            cat.textContent = '😼'; // Change cat emoji to open mouth
+
+            // Set a timeout to automatically deactivate wind after its duration
+            clearTimeout(windActiveTimeout); // Clear any previous timeout
+            windActiveTimeout = setTimeout(() => {
+                deactivateWind();
+            }, windDuration);
+        }
+
+        /**
+         * Deactivates the wind effect and resets the wind gauge for the next cycle.
+         */
+        function deactivateWind() {
+            isWindActive = false; // Set wind inactive state
+            windEffect.style.display = 'none'; // Hide wind animation
+            cat.classList.remove('open-mouth'); // Remove open mouth class
+            cat.textContent = '🐱'; // Reset cat emoji
+            
+            // Immediately restart the wind gauge timer to begin the next cycle
+            startWindGaugeTimer(); 
+        }
+
+        /**
+         * Moves the kid character left or right.
+         * @param {number} direction - -1 for left, 1 for right.
+         */
+        function moveKid(direction) {
+            if (isGamePaused || gameWon || gameLost) return; // Do nothing if game is paused or over
+
+            const containerWidth = gameContainer.clientWidth;
+            const kidWidth = kid.offsetWidth;
+
+            let newKidX = kidX + (direction * kidMoveSpeed);
+
+            // Constraint: Kid cannot move too far left (past the cat's approximate center)
+            // This ensures collision detection is meaningful at the cat's position.
+            if (newKidX < catX + (cat.offsetWidth / 2)) {
+                newKidX = catX + (cat.offsetWidth / 2);
+            }
+            // Constraint: Kid cannot move off the right edge of the container
+            if (newKidX > containerWidth - kidWidth) {
+                newKidX = containerWidth - kidWidth;
+            }
+
+            kidX = newKidX; // Update kid's X position
+            kid.style.right = 'auto'; // Ensure 'right' property is not interfering
+            kid.style.left = `${kidX}px`; // Apply new position to DOM
+        }
+
+        /**
+         * Checks for collision between the kid and the cat.
+         * Uses Axis-Aligned Bounding Box (AABB) collision detection.
+         * @returns {boolean} True if collision detected, false otherwise.
+         */
+        function checkCollision() {
+            const kidRect = kid.getBoundingClientRect(); // Get kid's bounding box
+            const catRect = cat.getBoundingClientRect(); // Get cat's bounding box
+
+            // Check if rectangles overlap on both X and Y axes
+            return (
+                kidRect.left < catRect.right &&
+                kidRect.right > catRect.left &&
+                kidRect.top < catRect.bottom &&
+                kidRect.bottom > catRect.top
+            );
+        }
+
+        /**
+         * Displays the main game message box (Win/Lose).
+         * @param {string} message - The message text to display.
+         * @param {string} type - 'win' or 'lose' to determine background color.
+         */
+        function showMessageBox(message, type) {
+            isGamePaused = true; // Pause game when win/lose message is shown
+            clearInterval(gameLoopInterval);
+            clearInterval(windGaugeInterval);
+            clearTimeout(windActiveTimeout);
+            clearTimeout(winCooldownTimeout); // Clear win cooldown timeout
+
+            messageBox.textContent = message; // Set message text
+            messageBox.style.display = 'block'; // Make message box visible
+            if (type === 'win') {
+                messageBox.style.backgroundColor = 'rgba(76, 175, 80, 0.8)'; // Green for win
+            } else if (type === 'lose') {
+                messageBox.style.backgroundColor = 'rgba(255, 0, 0, 0.8)'; // Red for lose
+            } else {
+                messageBox.style.backgroundColor = 'rgba(0, 0, 0, 0.7)'; // Default dark
+            }
+        }
+
+        /**
+         * Displays a general dialog box (used for "Ouch!" and "Game Over!").
+         * @param {string} message - The message to display.
+         * @param {string} type - 'ouch' or 'gameover' for styling.
+         * @param {Function} onOkCallback - Function to call when OK is pressed.
+         */
+        function showGameDialog(message, type, onOkCallback) {
+            isGamePaused = true; // Pause the game
+            clearInterval(gameLoopInterval); // Stop the game loop
+            clearInterval(windGaugeInterval); // Stop wind gauge
+            clearTimeout(windActiveTimeout); // Stop wind active timeout
+            clearTimeout(winCooldownTimeout); // Clear any pending win cooldown
+
+            dialogMessage.textContent = message; // Set message text
+            gameDialog.style.display = 'flex'; // Show the dialog
+            gameDialog.classList.remove('game-over'); // Reset class
+
+            if (type === 'gameover') {
+                gameDialog.classList.add('game-over'); // Add game over specific styling
+            }
+
+            // Ensure previous listener is removed before adding a new one
+            const oldClickListener = dialogOkButton.__currentClickListener;
+            if (oldClickListener) {
+                dialogOkButton.removeEventListener('click', oldClickListener);
+            }
+
+            const handleOkClick = () => {
+                gameDialog.style.display = 'none'; // Hide dialog
+                dialogOkButton.removeEventListener('click', handleOkClick); // Remove listener after use
+                dialogOkButton.__currentClickListener = null; // Clear reference
+
+                onOkCallback(); // Execute the provided callback
+            };
+
+            dialogOkButton.addEventListener('click', handleOkClick);
+            dialogOkButton.__currentClickListener = handleOkClick; // Store reference to current listener
+        }
+
+        /**
+         * The main game loop. Runs continuously to update game state,
+         * apply wind effects, and check for collisions.
+         */
+        function startGameLoop() {
+            clearInterval(gameLoopInterval); // Clear any existing loop to prevent duplicates
+            gameLoopInterval = setInterval(() => {
+                // If game is paused or won/lost, do not process game logic
+                if (isGamePaused || gameWon || gameLost) {
+                    return;
+                }
+
+                // If wind is active, pull the kid to the left
+                if (isWindActive) {
+                    let newKidX = kidX - windPullSpeed;
+                    // Ensure kid doesn't go past the cat's approximate center due to wind
+                    if (newKidX < catX + (cat.offsetWidth / 2)) {
+                         newKidX = catX + (cat.offsetWidth / 2);
+                    }
+                    kidX = newKidX; // Update kid's X position
+                    kid.style.right = 'auto'; // Ensure 'right' property is not interfering
+                    kid.style.left = `${kidX}px`; // Apply new position
+                }
+
+                // Check for collision between kid and cat
+                if (checkCollision()) {
+                    if (isWindActive) {
+                        // Rule 1: Kid got pulled into cat by wind - lose HP
+                        kidHP--; // Decrement HP
+                        updateHPGauge(); // Update HP gauge visual
+
+                        if (kidHP <= 0) {
+                            gameLost = true; // Game over if HP reaches 0
+                            showGameDialog("Game Over! The cat ate the kid 5 times!", "gameover", () => {
+                                initializeGame(); // Reset game when "OK" is clicked on Game Over
+                            });
+                        } else {
+                            showGameDialog("Ouch!", "ouch", () => {
+                                // This callback runs when the OK button in "Ouch!" is clicked
+                                resetKidPosition(); // Reset kid's position immediately (now uses rAF)
+                                deactivateWind(); // Stop wind and reset cat emoji, also restarts wind gauge timer
+
+                                // Set canWin to false temporarily to prevent immediate win
+                                canWin = false;
+                                clearTimeout(winCooldownTimeout); // Clear any existing cooldown
+                                winCooldownTimeout = setTimeout(() => {
+                                    canWin = true; // Allow win condition to be met again after cooldown
+                                    isGamePaused = false; // Unpause the game ONLY AFTER cooldown
+                                    startGameLoop(); // Resume game loop ONLY AFTER cooldown
+                                }, 500); // Using a fixed 500ms cooldown for win condition after Ouch!
+                            });
+                        }
+                    } else {
+                        // Rule 2: Kid contacted cat when wind is NOT on - Win condition
+                        // ONLY allow win if canWin flag is true (not in cooldown after an "Ouch!" or reset)
+                        if (canWin) {
+                            gameWon = true; // Set game won state
+                            showMessageBox("You Win! The kid successfully fed the cat!", "win");
+                        }
+                    }
+                }
+            }, 1000 / 60); // Run at approximately 60 frames per second (FPS)
+        }
+
+        // Event Listeners for controller buttons
+        moveLeftBtn.addEventListener('click', () => moveKid(-1)); // Move left
+        moveRightBtn.addEventListener('click', () => moveKid(1)); // Move right
+
+        // Add touchstart listeners to prevent default browser zoom/scroll on rapid taps
+        moveLeftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveKid(-1); }, { passive: false });
+        moveRightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveKid(1); }, { passive: false });
+
+
+        // Event Listener for the new Reset Button
+        resetButton.addEventListener('click', initializeGame);
+        // Add touchstart listener for reset button as well
+        resetButton.addEventListener('touchstart', (e) => { e.preventDefault(); initializeGame(); }, { passive: false });
+
+
+        // Initialize the game when the window has fully loaded
+        window.onload = initializeGame;
+
+        // Re-initialize the game on window resize to adjust element positions
+        // and maintain responsiveness.
+        window.addEventListener('resize', initializeGame);
+
+    </script>
+</body>
+</html>
